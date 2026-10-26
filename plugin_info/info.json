@@ -9,7 +9,7 @@
   "author": "Jérôme Raimbourg",
   "require": "4.4",
   "pluginVersion": "0.1.1",
-  "category": "energy",
+  "category": "wellness",
   "hasDependency": false,
   "hasOwnDeamon": false,
   "maxDependancyInstallTime": 0,
