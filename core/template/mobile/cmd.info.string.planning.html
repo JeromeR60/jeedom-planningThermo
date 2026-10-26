@@ -78,13 +78,13 @@
     function k(letter) { return BY_KEY[letter] ? letter : MODES[0].k; }
 
     function defaultPlan() {
+      // Même logique que planningThermo::defaultPlan() : 1er mode = Confort, 2e = Eco, 3e = Nuit
+      var C = MODES[0].k, E = MODES[1] ? MODES[1].k : C, N = MODES[2] ? MODES[2].k : E;
       var s = '';
       for (var d = 0; d < DAYS; d++) {
         for (var i = 0; i < SLOTS; i++) {
-          var c;
-          if (d < 5) c = i < 12 ? 'N' : i < 16 ? 'C' : i < 34 ? 'E' : i < 46 ? 'C' : 'N';
-          else c = i < 16 ? 'N' : i < 46 ? 'C' : 'N';
-          s += k(c);
+          if (d < 5) s += i < 12 ? N : i < 16 ? C : i < 34 ? E : i < 46 ? C : N;
+          else s += i < 16 ? N : i < 46 ? C : N;
         }
       }
       return s;
@@ -112,7 +112,19 @@
         id: setId,
         value: { message: serialize() },
         success: function () { dirty = false; msg('Planning enregistré'); },
-        error: function (e) { msg('Erreur d\u2019enregistrement : ' + (e && e.message ? e.message : '')); }
+        error: function (e) {
+          // On relâche le verrou et on resynchronise avec la valeur enregistrée côté Jeedom
+          dirty = false;
+          msg('Erreur d\u2019enregistrement : ' + (e && e.message ? e.message : ''));
+          reloadFromServer();
+        }
+      });
+    }
+    function reloadFromServer() {
+      jeedom.cmd.execute({
+        id: '#id#',
+        success: function (v) { if (!dirty && !painting) { load(v); renderGrid(); renderStatus(); } },
+        error: function () {}
       });
     }
     function saveSoon() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(save, 1200); }
@@ -182,7 +194,8 @@
       }
       if (derogActive()) {
         var d = new Date(derog.end * 1000);
-        elStatus.textContent = 'Dérogation ' + BY_KEY[derog.k].label + ' jusqu\u2019à ' +
+        var dDay = d.toDateString() === new Date().toDateString() ? '' : DAY_NAME[(d.getDay() + 6) % 7] + ' ';
+        elStatus.textContent = 'Dérogation ' + BY_KEY[derog.k].label + ' jusqu\u2019à ' + dDay +
           String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
         return;
       }
