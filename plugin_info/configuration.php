@@ -10,7 +10,7 @@ if (!isConnect()) {
   <fieldset>
     <div class="form-group">
       <div class="col-sm-12">
-        <span>{{Aucune configuration globale : tout se règle dans chaque équipement (Plugins → Énergie → Planning Thermostat).}}</span>
+        <span>{{Aucune configuration globale : tout se règle dans chaque équipement (Plugins → Confort → Planning Thermostat).}}</span>
       </div>
     </div>
   </fieldset>
