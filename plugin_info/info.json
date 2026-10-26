@@ -8,13 +8,13 @@
   "licence": "AGPL",
   "author": "Jérôme Raimbourg",
   "require": "4.4",
-  "pluginVersion": "0.1.1",
+  "pluginVersion": "0.1.3",
   "category": "wellness",
   "hasDependency": false,
   "hasOwnDeamon": false,
   "maxDependancyInstallTime": 0,
-  "changelog": "",
-  "documentation": "",
+  "changelog": "https://github.com/JeromeR60/jeedom-planningThermo/commits/main",
+  "documentation": "https://github.com/JeromeR60/jeedom-planningThermo/blob/main/docs/fr_FR/index.md",
   "display": "",
   "mobile": ""
 }
