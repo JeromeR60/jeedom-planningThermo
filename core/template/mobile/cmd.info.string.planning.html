@@ -1,0 +1,284 @@
+<div class="cmd cmd-widget planningThermo" data-type="info" data-subtype="string" data-template="planning" data-cmd_id="#id#" data-cmd_uid="#uid#" data-version="#version#" data-eqLogic_id="#eqLogic_id#" style="display:block;width:360px;max-width:100%;box-sizing:border-box;">
+  <style>
+    .planningThermo{padding:6px 8px;text-align:left;box-sizing:border-box;user-select:none;-webkit-user-select:none}
+    .planningThermo .pt-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+    .planningThermo .pt-status{font-size:12px;opacity:.8}
+    .planningThermo .pt-temp{font-size:22px;font-weight:500;line-height:1}
+    .planningThermo .pt-days{display:grid;grid-template-columns:repeat(7,minmax(26px,1fr));gap:3px;margin-bottom:8px}
+    .planningThermo .pt-day{border:1px solid rgba(128,128,128,.4);border-radius:5px;padding:4px 0;text-align:center;font-size:12px;cursor:pointer}
+    .planningThermo .pt-day.on{background:rgba(128,128,128,.35);font-weight:600}
+    .planningThermo .pt-day.today{text-decoration:underline}
+    .planningThermo .pt-row{display:grid;grid-template-columns:28px repeat(12,minmax(16px,1fr));gap:2px;margin-bottom:2px;touch-action:none}
+    .planningThermo .pt-lbl{font-size:10px;opacity:.6;align-self:center}
+    .planningThermo .pt-cell{height:26px;min-width:0;border-radius:3px;cursor:pointer}
+    .planningThermo .pt-cell.h{box-shadow:inset 1px 0 0 rgba(128,128,128,.6)}
+    .planningThermo .pt-cell.now{outline:2px solid currentColor;outline-offset:-2px}
+    .planningThermo .pt-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin-top:8px}
+    .planningThermo .pt-mode{display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;overflow:hidden;border:1px solid rgba(128,128,128,.4);border-radius:5px;padding:4px 6px;font-size:12px;cursor:pointer}
+    .planningThermo .pt-mode.on{border:2px solid currentColor;padding:3px 5px}
+    .planningThermo .pt-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+    .planningThermo .pt-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:8px}
+    .planningThermo .pt-actions a{margin:0!important;width:100%;font-size:11px;padding:3px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .planningThermo .pt-msg{font-size:11px;min-height:14px;margin-top:4px;opacity:.8}
+  </style>
+  <div class="pt-head">
+    <div>
+      <div class="cmdName" style="font-weight:500">#name_display#</div>
+      <div class="pt-status"></div>
+    </div>
+    <div class="pt-temp"></div>
+  </div>
+  <div class="pt-days"></div>
+  <div class="pt-grid"></div>
+  <div class="pt-modes"></div>
+  <div class="pt-actions">
+    <a class="btn btn-xs btn-default" data-act="copyWeek" title="Copier ce jour du lundi au vendredi">Lun→ven</a>
+    <a class="btn btn-xs btn-default" data-act="copyAll" title="Copier ce jour sur toute la semaine">7 jours</a>
+    <a class="btn btn-xs btn-default" data-act="d60" title="Forcer le mode sélectionné pendant 1 h">+1 h</a>
+    <a class="btn btn-xs btn-default" data-act="d120" title="Forcer le mode sélectionné pendant 2 h">+2 h</a>
+    <a class="btn btn-xs btn-default" data-act="dNext" title="Forcer le mode sélectionné jusqu'au prochain changement du planning">Jusqu'au suivant</a>
+    <a class="btn btn-xs btn-default" data-act="dCancel" title="Annuler la dérogation">Annuler</a>
+  </div>
+  <div class="pt-msg"></div>
+  <script>
+  (function () {
+    var root = document.querySelector('.cmd[data-cmd_uid="#uid#"]');
+    if (!root) return;
+
+    var SLOTS = 48, DAYS = 7, LEN = SLOTS * DAYS;
+    var DAY_LBL = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    var DAY_NAME = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+
+    function param(v, def) { return (!v || v.charAt(0) === '#') ? def : v; }
+    var setId = param('#set_id#', '');
+    var tempId = param('#temp_id#', '');
+    var suspId = param('#susp_id#', '');
+    var suspended = false;
+    var width = parseInt(param('#width#', '360'), 10) || 360;
+    root.style.width = width + 'px';
+    var modesParam = param('#modes#', 'C:Confort:F0997B;E:Eco:5DCAA5;N:Nuit:AFA9EC');
+
+    var MODES = modesParam.split(';').map(function (m) {
+      var p = m.split(':');
+      return { k: p[0].trim().charAt(0), label: (p[1] || p[0]).trim(), color: '#' + (p[2] || '999999').trim() };
+    });
+    var BY_KEY = {};
+    MODES.forEach(function (m) { BY_KEY[m.k] = m; });
+
+    var plan = '', derog = null, day = todayIdx(), mode = MODES[0].k;
+    var painting = false, dirty = false, saveTimer = null;
+
+    var $ = function (s) { return root.querySelector(s); };
+    var elDays = $('.pt-days'), elGrid = $('.pt-grid'), elModes = $('.pt-modes');
+    var elStatus = $('.pt-status'), elTemp = $('.pt-temp'), elMsg = $('.pt-msg');
+
+    function todayIdx() { return (new Date().getDay() + 6) % 7; }
+    function nowIdx() { var d = new Date(); return todayIdx() * SLOTS + d.getHours() * 2 + (d.getMinutes() >= 30 ? 1 : 0); }
+    function hhmm(slot) { slot = slot % SLOTS; return String(Math.floor(slot / 2)).padStart(2, '0') + ':' + (slot % 2 ? '30' : '00'); }
+    function k(letter) { return BY_KEY[letter] ? letter : MODES[0].k; }
+
+    function defaultPlan() {
+      var s = '';
+      for (var d = 0; d < DAYS; d++) {
+        for (var i = 0; i < SLOTS; i++) {
+          var c;
+          if (d < 5) c = i < 12 ? 'N' : i < 16 ? 'C' : i < 34 ? 'E' : i < 46 ? 'C' : 'N';
+          else c = i < 16 ? 'N' : i < 46 ? 'C' : 'N';
+          s += k(c);
+        }
+      }
+      return s;
+    }
+
+    function load(raw) {
+      var parts = String(raw || '').split('|');
+      plan = parts[0].length === LEN ? parts[0].split('').map(k).join('') : defaultPlan();
+      derog = (parts.length >= 3 && BY_KEY[parts[1]]) ? { k: parts[1], end: parseInt(parts[2], 10) } : null;
+    }
+    function serialize() { return plan + (derog ? '|' + derog.k + '|' + derog.end : ''); }
+    function setSlot(i, c) { plan = plan.substring(0, i) + c + plan.substring(i + 1); }
+    function derogActive() { return derog && derog.end * 1000 > Date.now(); }
+
+    function msg(t) {
+      elMsg.textContent = t;
+      clearTimeout(msg.t);
+      msg.t = setTimeout(function () { elMsg.textContent = ''; }, 4000);
+    }
+
+    function save() {
+      clearTimeout(saveTimer);
+      if (!setId) { msg('Paramètre set_id manquant : impossible d\u2019enregistrer'); return; }
+      jeedom.cmd.execute({
+        id: setId,
+        value: { message: serialize() },
+        success: function () { dirty = false; msg('Planning enregistré'); },
+        error: function (e) { msg('Erreur d\u2019enregistrement : ' + (e && e.message ? e.message : '')); }
+      });
+    }
+    function saveSoon() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(save, 1200); }
+
+    function renderDays() {
+      elDays.innerHTML = '';
+      DAY_LBL.forEach(function (l, i) {
+        var e = document.createElement('div');
+        e.className = 'pt-day' + (i === day ? ' on' : '') + (i === todayIdx() ? ' today' : '');
+        e.textContent = l;
+        e.title = DAY_NAME[i];
+        e.addEventListener('click', function () { day = i; renderDays(); renderGrid(); });
+        elDays.appendChild(e);
+      });
+    }
+
+    function renderModes() {
+      elModes.innerHTML = '';
+      elModes.style.gridTemplateColumns = 'repeat(' + Math.min(MODES.length, 4) + ',minmax(0,1fr))';
+      MODES.forEach(function (m) {
+        var e = document.createElement('div');
+        e.className = 'pt-mode' + (m.k === mode ? ' on' : '');
+        e.innerHTML = '<span class="pt-dot"></span><span></span>';
+        e.firstChild.style.background = m.color;
+        e.lastChild.textContent = m.label;
+        e.addEventListener('click', function () { mode = m.k; renderModes(); });
+        elModes.appendChild(e);
+      });
+    }
+
+    function renderGrid() {
+      elGrid.innerHTML = '';
+      var cur = nowIdx();
+      for (var r = 0; r < 4; r++) {
+        var row = document.createElement('div');
+        row.className = 'pt-row';
+        var lbl = document.createElement('div');
+        lbl.className = 'pt-lbl';
+        lbl.textContent = String(r * 6).padStart(2, '0') + 'h';
+        row.appendChild(lbl);
+        for (var c = 0; c < 12; c++) {
+          var s = r * 12 + c, i = day * SLOTS + s;
+          var cell = document.createElement('div');
+          cell.className = 'pt-cell' + (c > 0 && c % 2 === 0 ? ' h' : '') + (i === cur ? ' now' : '');
+          cell.dataset.i = i;
+          cell.style.background = BY_KEY[plan.charAt(i)].color;
+          cell.title = hhmm(s) + ' - ' + hhmm(s + 1) + ' : ' + BY_KEY[plan.charAt(i)].label;
+          row.appendChild(cell);
+        }
+        elGrid.appendChild(row);
+      }
+    }
+
+    function nextChange(from) {
+      var c = plan.charAt(from);
+      for (var n = 1; n < LEN; n++) {
+        var j = (from + n) % LEN;
+        if (plan.charAt(j) !== c) return j;
+      }
+      return -1;
+    }
+
+    function renderStatus() {
+      if (suspended) {
+        elStatus.textContent = 'Planning suspendu';
+        return;
+      }
+      if (derogActive()) {
+        var d = new Date(derog.end * 1000);
+        elStatus.textContent = 'Dérogation ' + BY_KEY[derog.k].label + ' jusqu\u2019à ' +
+          String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        return;
+      }
+      var cur = nowIdx(), nx = nextChange(cur);
+      var t = BY_KEY[plan.charAt(cur)].label;
+      if (nx >= 0) {
+        var sameDay = Math.floor(nx / SLOTS) === todayIdx();
+        t += ' jusqu\u2019à ' + (sameDay ? '' : DAY_NAME[Math.floor(nx / SLOTS)] + ' ') + hhmm(nx);
+      }
+      elStatus.textContent = t;
+    }
+
+    function refreshSusp() {
+      if (!suspId) return;
+      jeedom.cmd.execute({
+        id: suspId,
+        success: function (v) { suspended = (v == 1 || v === '1' || v === true); renderStatus(); },
+        error: function () {}
+      });
+    }
+
+    function refreshTemp() {
+      if (!tempId) return;
+      jeedom.cmd.execute({
+        id: tempId,
+        success: function (v) { var n = parseFloat(v); elTemp.textContent = isNaN(n) ? '' : n.toFixed(1).replace('.', ',') + '°'; },
+        error: function () {}
+      });
+    }
+
+    function paintAt(target) {
+      if (!target || target.dataset.i === undefined || !root.contains(target)) return;
+      var i = parseInt(target.dataset.i, 10);
+      if (plan.charAt(i) === mode) return;
+      setSlot(i, mode);
+      target.style.background = BY_KEY[mode].color;
+      dirty = true;
+    }
+    elGrid.addEventListener('pointerdown', function (e) {
+      if (e.target.dataset.i === undefined) return;
+      e.preventDefault();
+      painting = true;
+      paintAt(e.target);
+    });
+    elGrid.addEventListener('pointermove', function (e) {
+      if (painting) paintAt(document.elementFromPoint(e.clientX, e.clientY));
+    });
+    window.addEventListener('pointerup', function () {
+      if (!painting) return;
+      painting = false;
+      if (dirty) { renderGrid(); renderStatus(); saveSoon(); }
+    });
+
+    root.querySelector('.pt-actions').addEventListener('click', function (e) {
+      var a = e.target.closest('[data-act]');
+      if (!a) return;
+      var act = a.dataset.act, src = plan.substr(day * SLOTS, SLOTS), d;
+      if (act === 'copyWeek' || act === 'copyAll') {
+        var last = act === 'copyWeek' ? 5 : 7;
+        for (d = 0; d < last; d++) plan = plan.substring(0, d * SLOTS) + src + plan.substring((d + 1) * SLOTS);
+        msg('Planning du ' + DAY_NAME[day] + ' copié ' + (act === 'copyWeek' ? 'du lundi au vendredi' : 'sur toute la semaine'));
+      } else if (act === 'd60' || act === 'd120') {
+        derog = { k: mode, end: Math.floor(Date.now() / 1000) + (act === 'd60' ? 3600 : 7200) };
+      } else if (act === 'dNext') {
+        var nx = nextChange(nowIdx());
+        if (nx < 0) { msg('Aucun changement prévu dans le planning'); return; }
+        var now = new Date(), cur = nowIdx(), delta = ((nx - cur + LEN) % LEN);
+        var startOfSlot = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes() >= 30 ? 30 : 0, 0);
+        derog = { k: mode, end: Math.floor(startOfSlot.getTime() / 1000) + delta * 1800 };
+      } else if (act === 'dCancel') {
+        derog = null;
+      }
+      renderGrid(); renderStatus(); save();
+    });
+
+    function onUpdate(_options) {
+      if (dirty || painting) return;
+      load(_options.display_value !== undefined ? _options.display_value : _options.value);
+      renderGrid(); renderStatus();
+    }
+    load('#state#');
+    renderDays(); renderModes(); renderGrid(); renderStatus(); refreshTemp(); refreshSusp();
+    if (typeof jeedom.cmd.addUpdateFunction === 'function') {
+      jeedom.cmd.addUpdateFunction('#id#', onUpdate);
+    } else {
+      jeedom.cmd.update['#id#'] = onUpdate;
+    }
+    if (suspId && typeof jeedom.cmd.addUpdateFunction === 'function') {
+      jeedom.cmd.addUpdateFunction(suspId, function (o) { suspended = (o.value == 1 || o.display_value == 1); renderStatus(); });
+    }
+
+    var tick = setInterval(function () {
+      if (!document.body.contains(root)) { clearInterval(tick); return; }
+      if (!painting) { renderGrid(); renderStatus(); }
+      refreshTemp(); refreshSusp();
+    }, 60000);
+  })();
+  </script>
+</div>

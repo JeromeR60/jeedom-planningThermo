@@ -1,0 +1,20 @@
+{
+  "id": "planningThermo",
+  "name": "Planning Thermostat",
+  "description": {
+    "fr_FR": "Planification hebdomadaire des modes d'un thermostat (créneaux de 30 min) avec widget graphique éditable, dérogations et suspension.",
+    "en_US": "Weekly scheduling of thermostat modes (30 min slots) with an editable graphical widget, overrides and suspension."
+  },
+  "licence": "AGPL",
+  "author": "Jérôme Raimbourg",
+  "require": "4.4",
+  "pluginVersion": "0.1.0",
+  "category": "energy",
+  "hasDependency": false,
+  "hasOwnDeamon": false,
+  "maxDependancyInstallTime": 0,
+  "changelog": "",
+  "documentation": "",
+  "display": "",
+  "mobile": ""
+}
