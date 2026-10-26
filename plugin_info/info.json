@@ -8,7 +8,7 @@
   "licence": "AGPL",
   "author": "Jérôme Raimbourg",
   "require": "4.4",
-  "pluginVersion": "0.1.0",
+  "pluginVersion": "0.1.1",
   "category": "energy",
   "hasDependency": false,
   "hasOwnDeamon": false,

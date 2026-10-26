@@ -172,7 +172,7 @@ try {
                 <a class="btn btn-success btn-xs pull-right" id="bt_planningThermoAddMode"><i class="fas fa-plus-circle"></i> {{Ajouter un mode}}</a>
               </legend>
               <div class="alert alert-info">
-                {{Chaque mode a une lettre (utilisée dans le planning), un libellé, une couleur et la commande action du thermostat à exécuter. Changer la lettre d'un mode remplace ses créneaux par le premier mode.}}
+                {{Chaque mode a une lettre (utilisée dans le planning), un libellé, une couleur et la commande action du thermostat à exécuter. L'ordre du tableau est celui de la palette du widget ; le premier mode sert de mode par défaut.}}
               </div>
               <table class="table table-condensed" id="table_planningThermoModes">
                 <thead>
@@ -181,7 +181,7 @@ try {
                     <th>{{Libellé}}</th>
                     <th style="width:60px">{{Couleur}}</th>
                     <th>{{Commande}}</th>
-                    <th style="width:40px"></th>
+                    <th style="width:120px"></th>
                   </tr>
                 </thead>
                 <tbody></tbody>

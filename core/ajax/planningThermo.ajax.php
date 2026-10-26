@@ -42,8 +42,17 @@ try {
       }
     }
 
+    // Ordre : Confort, Eco, Nuit, puis les autres
+    $rank = array('confort' => 0, 'comfort' => 0, 'eco' => 1, 'nuit' => 2, 'night' => 2);
+    usort($modeCmds, function ($a, $b) use ($rank) {
+      $ra = strtolower(iconv('UTF-8', 'ASCII//TRANSLIT', $a->getName()));
+      $rb = strtolower(iconv('UTF-8', 'ASCII//TRANSLIT', $b->getName()));
+      return (isset($rank[$ra]) ? $rank[$ra] : 9) - (isset($rank[$rb]) ? $rank[$rb] : 9);
+    });
+
     $modes = array();
     $used = array();
+    $usedColors = array();
     foreach ($modeCmds as $i => $cmd) {
       $name = $cmd->getName();
       $plain = strtoupper(iconv('UTF-8', 'ASCII//TRANSLIT', $name));
@@ -56,10 +65,21 @@ try {
       }
       $used[] = $key;
       $low = strtolower(iconv('UTF-8', 'ASCII//TRANSLIT', $name));
+      $color = isset($colors[$low]) ? $colors[$low] : '';
+      if ($color === '' || in_array($color, $usedColors, true)) {
+        $color = '#B4B2A9';
+        foreach ($palette as $p) {
+          if (!in_array($p, $usedColors, true) && !in_array($p, array_values($colors), true)) {
+            $color = $p;
+            break;
+          }
+        }
+      }
+      $usedColors[] = $color;
       $modes[] = array(
         'k' => $key,
         'label' => $name,
-        'color' => isset($colors[$low]) ? $colors[$low] : $palette[$i % count($palette)],
+        'color' => $color,
         'cmd' => '#' . $cmd->getHumanName() . '#',
       );
     }

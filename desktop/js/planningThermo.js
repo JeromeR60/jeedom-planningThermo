@@ -28,7 +28,11 @@ function planningThermoAddMode(mode) {
   tr += '<input class="form-control input-sm roundedLeft" data-key="cmd" placeholder="{{Commande action du thermostat}}">'
   tr += '<span class="input-group-btn"><a class="btn btn-default btn-sm planningThermo_selCmd roundedRight" data-type="action"><i class="fas fa-list-alt"></i></a></span>'
   tr += '</div></td>'
-  tr += '<td><a class="btn btn-danger btn-sm planningThermo_removeMode"><i class="fas fa-minus-circle"></i></a></td>'
+  tr += '<td style="white-space:nowrap">'
+  tr += '<a class="btn btn-default btn-sm planningThermo_upMode" title="{{Monter}}"><i class="fas fa-arrow-up"></i></a> '
+  tr += '<a class="btn btn-default btn-sm planningThermo_downMode" title="{{Descendre}}"><i class="fas fa-arrow-down"></i></a> '
+  tr += '<a class="btn btn-danger btn-sm planningThermo_removeMode"><i class="fas fa-minus-circle"></i></a>'
+  tr += '</td>'
   tr += '</tr>'
   var $tr = $(tr)
   $tr.find('[data-key=k]').val(mode.k || '')
@@ -70,6 +74,16 @@ $(document).off('click.planningThermo')
 
 $(document).on('click.planningThermo', '#bt_planningThermoAddMode', function () {
   planningThermoAddMode()
+})
+
+$(document).on('click.planningThermo', '.planningThermo_upMode', function () {
+  var tr = $(this).closest('tr')
+  tr.prev('tr').before(tr)
+})
+
+$(document).on('click.planningThermo', '.planningThermo_downMode', function () {
+  var tr = $(this).closest('tr')
+  tr.next('tr').after(tr)
 })
 
 $(document).on('click.planningThermo', '.planningThermo_removeMode', function () {
