@@ -3,6 +3,7 @@
 Planification hebdomadaire des modes d'un thermostat Jeedom, avec un widget graphique qu'on modifie directement depuis le Dashboard ou le mobile.
 
 - Grille de 7 jours × 48 créneaux de 30 min, qu'on « peint » au doigt ou à la souris
+- Sur écran tactile (mobile, Jeedom Connect), la grille est verrouillée par défaut pour pouvoir faire défiler la page sans la modifier : touchez le cadenas pour la déverrouiller (reverrouillage automatique après 30 s)
 - Copie d'un jour sur la semaine (lun→ven ou 7 jours)
 - Dérogations temporaires (+1 h, +2 h, jusqu'au prochain changement) et annulation
 - Suspension et reprise (mode vacances)

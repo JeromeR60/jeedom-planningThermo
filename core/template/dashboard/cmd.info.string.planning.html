@@ -9,6 +9,13 @@
     .planningThermo .pt-day.on{background:rgba(128,128,128,.35);font-weight:600}
     .planningThermo .pt-day.today{text-decoration:underline}
     .planningThermo .pt-row{display:grid;grid-template-columns:28px repeat(12,minmax(16px,1fr));gap:2px;margin-bottom:2px;touch-action:none}
+    .planningThermo.locked .pt-row{touch-action:pan-x pan-y}
+    .planningThermo.locked .pt-cell{cursor:default}
+    .planningThermo .pt-right{display:flex;align-items:flex-start;gap:6px}
+    .planningThermo .pt-lock{display:none;align-items:center;justify-content:center;width:30px;height:30px;margin:-5px -5px 0 0;border-radius:5px;font-size:15px;cursor:pointer;opacity:.6}
+    .planningThermo .pt-lock.touch{display:inline-flex}
+    .planningThermo:not(.locked) .pt-lock{opacity:1;color:#e67e22;background:rgba(230,126,34,.18)}
+    .planningThermo.locked [data-act=copyWeek],.planningThermo.locked [data-act=copyAll]{opacity:.45}
     .planningThermo .pt-lbl{font-size:10px;opacity:.6;align-self:center}
     .planningThermo .pt-cell{height:26px;min-width:0;border-radius:3px;cursor:pointer}
     .planningThermo .pt-cell.h{box-shadow:inset 1px 0 0 rgba(128,128,128,.6)}
@@ -26,7 +33,10 @@
       <div class="cmdName" style="font-weight:500">#name_display#</div>
       <div class="pt-status"></div>
     </div>
-    <div class="pt-temp"></div>
+    <div class="pt-right">
+      <div class="pt-temp"></div>
+      <a class="pt-lock"></a>
+    </div>
   </div>
   <div class="pt-days"></div>
   <div class="pt-grid"></div>
@@ -226,6 +236,38 @@
       });
     }
 
+    // Verrou d'édition : sur écran tactile, la grille est verrouillée par défaut
+    // pour que le défilement de la page ne modifie pas le planning par accident.
+    var TOUCH = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    var LOCK_DELAY = 30000, locked = false, lockTimer = null;
+    var elLock = $('.pt-lock');
+    function setLocked(v) {
+      locked = v;
+      clearTimeout(lockTimer);
+      root.classList.toggle('locked', v);
+      elLock.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">' +
+        '<rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/>' +
+        (v ? '<path d="M8 11V7a4 4 0 0 1 8 0v4"/>' : '<path d="M8 11V7a4 4 0 0 1 7.8-1.2"/>') + '</svg>';
+      elLock.title = v ? 'Déverrouiller pour modifier le planning' : 'Verrouiller le planning';
+      if (!v) armLock();
+    }
+    function armLock() {
+      if (!TOUCH) return;
+      clearTimeout(lockTimer);
+      lockTimer = setTimeout(function () { if (painting) armLock(); else setLocked(true); }, LOCK_DELAY);
+    }
+    function lockedMsg() { msg('Planning verrouillé : touchez le cadenas pour le modifier'); }
+    if (TOUCH) {
+      elLock.classList.add('touch');
+      elLock.addEventListener('click', function (e) {
+        e.preventDefault();
+        setLocked(!locked);
+        msg(locked ? 'Planning verrouillé' : 'Planning déverrouillé (reverrouillage automatique après 30 s)');
+      });
+      setLocked(true);
+    }
+    function isEditAct(act) { return act === 'copyWeek' || act === 'copyAll'; }
+
     function paintAt(target) {
       if (!target || target.dataset.i === undefined || !root.contains(target)) return;
       var i = parseInt(target.dataset.i, 10);
@@ -235,13 +277,17 @@
       dirty = true;
     }
     elGrid.addEventListener('pointerdown', function (e) {
-      if (e.target.dataset.i === undefined) return;
+      if (e.target.dataset.i === undefined || locked) return;
       e.preventDefault();
       painting = true;
+      armLock();
       paintAt(e.target);
     });
     elGrid.addEventListener('pointermove', function (e) {
       if (painting) paintAt(document.elementFromPoint(e.clientX, e.clientY));
+    });
+    elGrid.addEventListener('click', function (e) {
+      if (locked && e.target.dataset.i !== undefined) lockedMsg();
     });
     window.addEventListener('pointerup', function () {
       if (!painting) return;
@@ -253,6 +299,10 @@
       var a = e.target.closest('[data-act]');
       if (!a) return;
       var act = a.dataset.act, src = plan.substr(day * SLOTS, SLOTS), d;
+      if (isEditAct(act)) {
+        if (locked) { lockedMsg(); return; }
+        armLock();
+      }
       if (act === 'copyWeek' || act === 'copyAll') {
         var last = act === 'copyWeek' ? 5 : 7;
         for (d = 0; d < last; d++) plan = plan.substring(0, d * SLOTS) + src + plan.substring((d + 1) * SLOTS);
