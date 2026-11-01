@@ -2,6 +2,8 @@
 
 Planification hebdomadaire des modes d'un thermostat (créneaux de 30 min) avec un widget graphique éditable, des dérogations et une suspension.
 
+![Widget Planning Thermostat](docs/images/widget.png)
+
 Documentation : [docs/fr_FR/index.md](docs/fr_FR/index.md)
 
 ## Installation depuis GitHub

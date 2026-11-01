@@ -10,12 +10,20 @@ Planification hebdomadaire des modes d'un thermostat Jeedom, avec un widget grap
 - Blocage par une info (ex. thermostat verrouillé)
 - Un équipement par thermostat
 
+![Widget Planning Thermostat sur le Dashboard](../images/widget.png)
+
+*Le widget sur le Dashboard : mode en cours et heure de fin, température, choix du jour, grille du jour (le créneau courant est encadré), palette des modes et boutons de copie et de dérogation.*
+
 ## Configuration
 
 1. **Plugins → Confort → Planning Thermostat → Ajouter**.
 2. Choisissez l'**objet parent**, puis le **thermostat** (plugin Thermostat), et cliquez sur **Importer**. Les modes du thermostat, sa température et son info de verrouillage sont remplis automatiquement.
 3. Dans le tableau **Modes**, supprimez ceux qui ne doivent pas apparaître dans le planning (ex. Hors-gel, Off). Ajustez si besoin les lettres, les libellés et les couleurs.
 4. Sauvegardez. Le widget apparaît sur le Dashboard avec un planning par défaut, à modifier directement.
+
+![Configuration d'un équipement Planning Thermostat](../images/configuration.png)
+
+*Exemple de configuration : thermostat importé, température et info de verrouillage du thermostat, trois modes Confort / Eco / Nuit reliés aux commandes du thermostat.*
 
 Sans le plugin Thermostat, chaque mode peut pointer vers n'importe quelle commande action (sélecteur à droite du champ).
 
