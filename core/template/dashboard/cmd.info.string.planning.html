@@ -55,6 +55,14 @@
     var root = document.querySelector('.cmd[data-cmd_uid="#uid#"]');
     if (!root) return;
 
+    // Design Jeedom, zone « widget au clic » : Jeedom ferme la zone sur tout clic
+    // dont la cible n'est plus dans la zone. Nos rendus remplacent les éléments
+    // cliqués (jours, modes, cases), la cible est alors détachée du document :
+    // on arrête la propagation pour que la zone reste ouverte.
+    root.addEventListener('click', function (e) {
+      if (!e.target.isConnected) e.stopPropagation();
+    });
+
     var SLOTS = 48, DAYS = 7, LEN = SLOTS * DAYS;
     var DAY_LBL = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
     var DAY_NAME = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
